@@ -31,7 +31,7 @@ else if (sShort < 1024)
 	document.write("input.snum {width:46px;height:30px;}");
 	document.write("input.hint {height:30px;width:30px;}");
 	document.write("select {font-size:25px;}");
-	document.write("table.stable {margin-top:5px;font-size:50px;}");
+	document.write("table.stable {margin-top:3px;font-size:40px;}");
 }
 else
 {

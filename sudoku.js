@@ -1,8 +1,10 @@
 var BigTable=document.getElementById("alltab");
 var TotalNum=0,Error=0,ReadData=1,SolveAll=0,AutoFlag=0,t,clicktype="no",method="no",solve="normal";
 var TryRow=0,TryCol=0,TryIndex=0,TryAgain=0,TryTimes=0,CountTry=0,findone=0,tnum;
-var findrow=0,findcol=0,findnumber=0,findcell=0;		//通过推理发现(findrow+1)行(findcol+1)列只能填数字findnumber
-																										//findcell为只有一个候选数的单元格编号(1-81)
+//通过推理发现(findrow+1)行(findcol+1)列只能填数字findnumber
+//findcell为只有一个候选数的单元格编号(1-81)
+var findrow=0,findcol=0,findnumber=0,findcell=0;
+
 var TableArray=new Array();
 var TableArray2=new Array();
 var CountNum=new Array();
@@ -59,7 +61,7 @@ mobj = null;
 //点击时替换表格内容
 var fn = function(){
 	//记录触发事件的对象
-	var o = event.srcElement;
+	var o = event.srcElement, row, col;
 	//判断是否为文本框
 	if (o.type == "text") {
 		o.focus();
@@ -68,6 +70,10 @@ var fn = function(){
 	//判断是否为可操作表格
 		if (o.type == "mytd" && document.getElementById("SelectNum").value != "0") {
 			o.innerText=document.getElementById("SelectNum").value;
+			row=Number(o.getAttribute('rowid'));
+			col=Number(o.getAttribute('colid'));
+			TableArray[row][col]=o.innerText;
+			CheckNumAvailable();
 		}
 }
 
@@ -100,6 +106,8 @@ function init(){
 					tds[j].type = "mytd";
 					tds[j].setAttribute('width',cellWidth);
 					tds[j].setAttribute('height',cellWidth);
+					tds[j].setAttribute('rowid',parseInt(j/9));
+					tds[j].setAttribute('colid',j%9);
 			}
 		}
 	}	
@@ -123,17 +131,32 @@ function IntCheck()
 	}
 }
 
+// 直接设定打开网页显示的第一个数独，避免从xml文件读取有延迟
 function FirstSudoku()
 {
-	TableArray[0]=["7","4"," ", "6","3"," ", " "," "," "];
-	TableArray[1]=[" "," "," ", " "," "," ", " "," "," "];
-	TableArray[2]=[" "," ","5", "2"," "," ", " ","3"," "];
-	TableArray[3]=["6"," ","3", " "," ","5", " ","4"," "];
-	TableArray[4]=[" ","1"," ", " ","6"," ", " ","8"," "];
-	TableArray[5]=[" ","8"," ", "7"," "," ", "2"," ","3"];
-	TableArray[6]=[" ","7"," ", " "," ","2", "9"," "," "];
-	TableArray[7]=[" "," "," ", " "," "," ", " "," "," "];
-	TableArray[8]=[" "," "," ", " ","4","3", " ","1","6"];
+	TableArray[0]=["7","4"," ",  "6","3"," ", " "," "," "];
+	TableArray[1]=[" "," "," ",  " "," "," ", " "," "," "];
+	TableArray[2]=[" "," ","5",  "2"," "," ", " ","3"," "];
+
+	TableArray[3]=["6"," ","3",  " "," ","5", " ","4"," "];
+	TableArray[4]=[" ","1"," ",  " ","6"," ", " ","8"," "];
+	TableArray[5]=[" ","8"," ",  "7"," "," ", "2"," ","3"];
+
+	TableArray[6]=[" ","7"," ",  " "," ","2", "9"," "," "];
+	TableArray[7]=[" "," "," ",  " "," "," ", " "," "," "];
+	TableArray[8]=[" "," "," ",  " ","4","3", " ","1","6"];
+
+	// TableArray[0]=["4"," "," ",  " "," "," ",  " ","8"," "];
+	// TableArray[1]=[" "," ","8",  "4"," ","5",  " "," "," "];
+	// TableArray[2]=[" "," ","9",  "8"," ","7",  " "," "," "];
+
+	// TableArray[3]=["8"," "," ",  " ","6"," ",  " "," "," "];
+	// TableArray[4]=[" "," "," ",  " ","5","8",  "7"," ","9"];
+	// TableArray[5]=[" ","3"," ",  " ","4"," ",  "8"," ","5"];
+
+	// TableArray[6]=[" "," "," ",  " ","8"," ",  " "," "," "];
+	// TableArray[7]=[" ","8","5",  " ","7","4",  " "," ","1"];
+	// TableArray[8]=[" "," "," ",  " ","3"," ",  " ","4","8"];
 	
 	SetTableValues();	
 	SetBgColor();
@@ -163,7 +186,7 @@ function DelAllNums()					//清除表格中所有数字
 	}
 }
 
-function SelectSudoku()
+function SelectSudoku()	//无法从xml文件中读取数独题目时，从以下五个题目中选择
 {
 	switch(Number(document.getElementById("SudokuID").value))
 	{
@@ -236,7 +259,7 @@ function NextSudoku()
 	}
 	else
 	{
-		document.getElementById("SudokuID").value=(Number(document.getElementById("SudokuID").value)+1)%500;
+		document.getElementById("SudokuID").value=(Number(document.getElementById("SudokuID").value)+1)%501;
 		ReadXML();
 	}
 	SudokuNum();
@@ -255,7 +278,8 @@ function NextSudoku()
 		ShowVoidNums();
 }
 
-function SudokuNum()										//数独编号变化时，更新游戏难度
+//数独编号变化时，更新游戏难度
+function SudokuNum()
 {
 	var id=Number(document.getElementById("SudokuID").value);
 	if(id < 100)
@@ -287,7 +311,7 @@ function ChangeDifficutly()
 	NextSudoku();
 }
 
-function TestXML()
+function TestXML()  //测试能否从xml文件中读取不同数独题目的数据
 {
 	try //Internet Explorer
   {
@@ -354,11 +378,11 @@ function ReadXML()
 	}	
 }
 
-function GetTableValues()				//读取网页中表格里的数据
+function GetTableValues()	//读取网页中表格里的数据
 {
 	var row,col;
 	
-	TotalNum=0;									//数独中已填数字总数（包括初始数字）
+	TotalNum=0;					//数独中已填数字总数（包括初始数字）
 	for(row=0;row<9;row++)
 	{
 		for(col=0;col<9;col++)
@@ -370,14 +394,14 @@ function GetTableValues()				//读取网页中表格里的数据
 	}
 	if(CheckSudoku() == false)
 		Error=1;
-	else	if(TotalNum >= 81)
+	else if(TotalNum >= 81)
 	{
 		Error=0;
 		CheckEnd();
 	}
 }
 
-function SetTableValues()				//设置网页中表格里的数据
+function SetTableValues()	//设置网页中表格里的数据
 {
 	var row,col;
 	
@@ -393,7 +417,7 @@ function SetTableValues()				//设置网页中表格里的数据
 	}
 }
 
-function CheckSudoku()					//检查是否违反数独定义（行、列或九宫格内有重复数字）
+function CheckSudoku()	//检查是否违反数独定义（行、列或九宫格内有重复数字）
 {
 	var row,col,num,index,trow,tcol,count;
 	
@@ -480,7 +504,7 @@ MatrixVoidsCol()			//九宫格内几个空格属于同一列，某个数字在�
 											//则该列其它空格不能填该数字
 RectVoids()						//找到四个可组成长方形的空格，某个数字必须填在长方形两个相对的角上			*/
 
-function AutoFindOne()						//自动找到一个可以填入的空格和数字，130425增加
+function AutoFindOne()	//自动找到一个可以填入的空格和数字，130425增加
 {
 	//GetTableValues();
 	var tn=TotalNum;
@@ -491,12 +515,15 @@ function AutoFindOne()						//自动找到一个可以填入的空格和数字�
 			CheckVoidsNum();
 		if(CheckCellUnique() || CheckRUnique() || CheckCUnique() || CheckMUnique())
 		{
-			InputNum(0);								//通过常规检查直接找到可填数字
+			InputNum(0);	//通过常规检查直接找到可填数字
 			//if(solve=="Advanced")
-			findcell=UpdateVoidsNum(findrow,findcol,findnumber);
+			if(clicktype == "HintNum")
+				findcell=UpdateVoidsNum(findrow,findcol,findnumber);
 		}
-		//GetTableValues();				//SetTableValues中初始化TotalNum，InputNum中更新TotalNum
-		if(tn == TotalNum)			//常规检查不能填入数字
+		//GetTableValues();		//SetTableValues中初始化TotalNum，InputNum中更新TotalNum
+		//常规检查不能填入数字：
+		// if(clicktype == "HintNum" && tn == TotalNum)
+		else
 		{
 			solve="Advanced";			
 			findcell=FindVoidsNum();
@@ -552,7 +579,7 @@ function AutoAll()
 	//CheckAdvUnique2();
 }
 
-function CheckEnd()					//检查结束状态
+function CheckEnd()	//检查结束状态
 {
 	//alert(findone+','+Error);
 	if(findone)
@@ -648,14 +675,15 @@ function TestSmallTable(num,row,col)
 	return true;
 }
 
-function CheckNumAvailable()						//获得每个数字所能填入的空格信息（空格总数和每个空格的行标、列标）
+//获得每个数字所能填入的空格信息（空格总数和每个空格的行标、列标）
+function CheckNumAvailable()
 {
 	var row,col,number,num;
 	
 	for(num=1;num<=9;num++)
 	{
-		CountNum[num-1][0]=0;					//CountNum[0][0]表示数字1的可填入空格数，
-																	//CountNum[0][1]表示1可填入的第一个空格的行标，CountNum[0][2]表示1可填入的第一个空格的列标
+		CountNum[num-1][0]=0;		//CountNum[0][0]表示数字1的可填入空格数，
+									//CountNum[0][1]表示1可填入的第一个空格的行标，CountNum[0][2]表示1可填入的第一个空格的列标
 	}
 	GetTableValues();
 	for(row=0;row<9;row++)
@@ -679,7 +707,8 @@ function CheckNumAvailable()						//获得每个数字所能填入的空格信�
 	}
 }
 
-function CheckVoids()						//获得每个九宫格的空格分布（空格数和每个空格的行标、列标）
+//获得每个九宫格的空格分布（空格数和每个空格的行标、列标）
+function CheckVoids()
 {
 	var row,col,number,num;
 	
@@ -706,7 +735,8 @@ function CheckVoids()						//获得每个九宫格的空格分布（空格数和
 	}	
 }
 
-function CheckVoidsNum()				//分析每个空格能够填入的数字（候选数总数和每个候选数）
+//分析每个空格能够填入的数字（候选数总数和每个候选数）
+function CheckVoidsNum()
 {
 	var row,col,number,num,i;
 
@@ -736,7 +766,8 @@ function CheckVoidsNum()				//分析每个空格能够填入的数字（候选�
 	}
 }
 
-function UpdateVoidsNum(row,col,num)	//在某个空格填入数字后，更新空格的候选数列表（该行、列和九宫格内其它空格将不能填这个数字）
+//在某个空格填入数字后，更新空格的候选数列表（该行、列和九宫格内其它空格将不能填这个数字）
+function UpdateVoidsNum(row,col,num)
 {
 	var i,j,k,p,m,t,cellid=0;
 	
@@ -810,7 +841,8 @@ function UpdateVoidsNum(row,col,num)	//在某个空格填入数字后，更新�
 	return cellid;
 }
 
-function FindVoidsNum()							//一个或多个空格的候选数更新后，需检查是否存在只有一个候选数的空格
+//一个或多个空格的候选数更新后，需检查是否存在只有一个候选数的空格
+function FindVoidsNum()
 {
 	var row,col,num;
 
@@ -839,7 +871,7 @@ function FindVoidsNum()							//一个或多个空格的候选数更新后，需
 	return 0;						//找不到有唯一候选数的空格
 }
 
-function InputNum(param)				//根据推理结果，在某个空格填入数字
+function InputNum(param)	//根据推理结果，在某个空格填入数字
 {
 	var row,col,num;
 	
@@ -861,24 +893,35 @@ function InputNum(param)				//根据推理结果，在某个空格填入数字
 		BigTable.rows[row].cells[col].bgColor="#99CCFF";
 		findone=1;
 	}
+	else if(clicktype == "HintN")
+	{
+		alert("当前可以填入数字" + num);
+		findone=1;
+	}
 	else if(clicktype == "HintNum" || clicktype == "AutoTry" || clicktype == "AutoAll")
 	{
 		BigTable.rows[row].cells[col].innerHTML="<font color='red'><strong>"+num+"</strong></font>";
 		if(param == 1 && AutoFlag == 0 && document.getElementById("OneByOne").checked == true)
 			alert("该空格只剩一个候选数");
 		SetBgColor();
-		BigTable.rows[row].cells[col].innerHTML="<font color='blue'>"+num+"</font>";
+		//一键解谜模式下，不延迟设置当前填入数字颜色
+		if(method == "AutoAll")
+			BigTable.rows[row].cells[col].innerHTML="<font color='blue'>"+num+"</font>";
+		else {
+			setTimeout(function(){
+				BigTable.rows[row].cells[col].innerHTML="<font color='blue'>"+num+"</font>";
+			}, 2000);
+		}
 		TableArray[row][col]=num;
 		if(clicktype == "HintNum")
-		{
 			findone=1;
-		}
+		TotalNum++;
 	}
-	TotalNum++;
 	return (row*9+col+1);			//返回新填入数字的空格编号（1-81）
 }
 
-function TwoVoidsRow()					//同一行的两个空格可填入的数字完全相同，将减小该行其它空格的数字可填性
+//同一行的两个空格可填入的数字完全相同，将减小该行其它空格的数字可填性
+function TwoVoidsRow()
 {
 	var row,col,num,num1,num2,i,j,k,p,flag=0,row1,col1,row2,col2,row3,col3,count;
 	
@@ -935,7 +978,8 @@ function TwoVoidsRow()					//同一行的两个空格可填入的数字完全相
 	return false;
 }
 
-function TwoVoidsCol()					//同一列的两个空格可填入的数字完全相同，将减小该列其它空格的数字可填性
+//同一列的两个空格可填入的数字完全相同，将减小该列其它空格的数字可填性
+function TwoVoidsCol()
 {
 	var row,col,num,num1,num2,i,j,k,p,flag=0,row1,col1,row2,col2,row3,col3,count;
 	
@@ -992,7 +1036,8 @@ function TwoVoidsCol()					//同一列的两个空格可填入的数字完全相
 	return false;
 }
 
-function ThreeVoidsRow()					//同一行的三个空格可填入数字的总数为4个，将减小该行其它空格的数字可填性
+//同一行的三个空格可填入数字的总数为4个，将减小该行其它空格的数字可填性
+function ThreeVoidsRow()
 {
 	var row,col,col1,col2,col3,count,count0,maxcount=3,flag=0,i,j,p,vnum=new Array(0,0,0,0);
 	
@@ -1058,7 +1103,8 @@ function ThreeVoidsRow()					//同一行的三个空格可填入数字的总数�
 	return false;
 }
 
-function ThreeVoidsCol()					//同一列的三个空格可填入数字的总数为4个，将减小该列其它空格的数字可填性
+//同一列的三个空格可填入数字的总数为4个，将减小该列其它空格的数字可填性
+function ThreeVoidsCol()
 {
 	var row,col,row1,row2,row3,count,count0,maxcount=3,flag=0,i,j,p,vnum=new Array(0,0,0,0);
 	
@@ -1124,7 +1170,8 @@ function ThreeVoidsCol()					//同一列的三个空格可填入数字的总数�
 	return false;
 }
 
-function ThreeVoidsM()					//同一九宫格的三个空格可填入数字的总数为3个，将减小该九宫格其它空格的数字可填性
+//同一九宫格的三个空格可填入数字的总数为3个，将减小该九宫格其它空格的数字可填性
+function ThreeVoidsM()
 {
 	var row,col,matrix,cell,cell1,cell2,cell3,count,count0,maxcount=3,flag=0,i,j,p,vnum=new Array(0,0,0,0);
 	
@@ -1198,7 +1245,8 @@ function ThreeVoidsM()					//同一九宫格的三个空格可填入数字的总
 	return false;
 }
 
-function FourVoidsRow()					//同一行的四个空格可填入数字的总数为4个，将减小该行其它空格的数字可填性
+//同一行的四个空格可填入数字的总数为4个，将减小该行其它空格的数字可填性
+function FourVoidsRow()
 {
 	var row,col,col1,col2,col3,col4,count,count0,maxcount=4,flag=0,i,j,p,vnum=new Array(0,0,0,0);
 	
@@ -1279,7 +1327,8 @@ function FourVoidsRow()					//同一行的四个空格可填入数字的总数�
 	return false;
 }
 
-function FourVoidsCol()					//同一列的四个空格可填入数字的总数为4个，将减小该列其它空格的数字可填性
+//同一列的四个空格可填入数字的总数为4个，将减小该列其它空格的数字可填性
+function FourVoidsCol()
 {
 	var row,col,row1,row2,row3,row4,count,count0,maxcount=4,flag=0,i,j,p,vnum=new Array(0,0,0,0);
 	
@@ -1360,7 +1409,8 @@ function FourVoidsCol()					//同一列的四个空格可填入数字的总数�
 	return false;
 }
 
-function FourVoidsM()					//同一九宫格的四个空格可填入数字的总数为4个，将减小该九宫格其它空格的数字可填性
+//同一九宫格的四个空格可填入数字的总数为4个，将减小该九宫格其它空格的数字可填性
+function FourVoidsM()
 {
 	var row,col,matrix,cell,cell1,cell2,cell3,cell4,count,count0,maxcount=4,flag=0,i,j,p,vnum=new Array(0,0,0,0);
 	
@@ -1451,7 +1501,8 @@ function FourVoidsM()					//同一九宫格的四个空格可填入数字的总�
 	return false;
 }
 
-function TwoNumVoidsRow()					//两个数子只能填在同一行的两个空格，则这两个空格不能填其它数字
+//两个数子只能填在同一行的两个空格，则这两个空格不能填其它数字
+function TwoNumVoidsRow()
 {
 	var row,col,num,num1,num2,i,j,k,p,flag,row1,col1,row2,col2,row3,col3,count;
 	
@@ -1553,7 +1604,8 @@ function TwoNumVoidsRow()					//两个数子只能填在同一行的两个空格
 	return false;
 }
 
-function TwoNumVoidsCol()					//两个数子只能填在同一列的两个空格，则这两个空格不能填其它数字
+//两个数子只能填在同一列的两个空格，则这两个空格不能填其它数字
+function TwoNumVoidsCol()
 {
 	var row,col,num,num1,num2,i,j,k,p,flag,row1,col1,row2,col2,row3,col3,count;
 	
@@ -1655,8 +1707,9 @@ function TwoNumVoidsCol()					//两个数子只能填在同一列的两个空格
 	return false;
 }
 
-function ColVoidsM()									//某一列有多个空格属于同一九宫格，且有一个数在这一列只能填在这几个空格里，
-																			//则所在九宫格内的其它空格不能填这个数字
+//某一列有多个空格属于同一九宫格，且有一个数在这一列只能填在这几个空格里，
+//则所在九宫格内的其它空格不能填这个数字
+function ColVoidsM()
 {
 	var row,col,i,j,k,p,t,m,num,count,flag;
 	var number=new Array();
@@ -1734,8 +1787,9 @@ function ColVoidsM()									//某一列有多个空格属于同一九宫格，�
 	return false;
 }
 
-function RowVoidsM()									//某一行有多个空格属于同一九宫格，且有一个数在这一行只能填在这几个空格里，
-																			//则所在九宫格内的其它空格不能填这个数字
+//某一行有多个空格属于同一九宫格，且有一个数在这一行只能填在这几个空格里，
+//则所在九宫格内的其它空格不能填这个数字
+function RowVoidsM()
 {
 	var row,col,i,j,k,p,t,m,num,count,flag;
 	var number=new Array();
@@ -1813,8 +1867,9 @@ function RowVoidsM()									//某一行有多个空格属于同一九宫格，�
 	return false;
 }
 
-function MatrixVoidsRow()						//九宫格内几个空格属于同一行，某个数字在该九宫格内只能填在这几个空格里，
-																			//则该行其它空格不能填该数字
+//九宫格内几个空格属于同一行，某个数字在该九宫格内只能填在这几个空格里，
+//则该行其它空格不能填该数字
+function MatrixVoidsRow()
 {
 	var row,col,i,j,k,p,t,m,num,count,flag;
 	var number=new Array();
@@ -1896,8 +1951,9 @@ function MatrixVoidsRow()						//九宫格内几个空格属于同一行，某�
 	return false;
 }
 
-function MatrixVoidsCol()						//九宫格内几个空格属于同一列，某个数字在该九宫格内只能填在这几个空格里，
-																			//则该列其它空格不能填该数字
+//九宫格内几个空格属于同一列，某个数字在该九宫格内只能填在这几个空格里，
+//则该列其它空格不能填该数字
+function MatrixVoidsCol()
 {
 	var row,col,i,j,k,p,t,m,num,count,flag;
 	var number=new Array();
@@ -1979,7 +2035,8 @@ function MatrixVoidsCol()						//九宫格内几个空格属于同一列，某�
 	return false;
 }
 
-function RectVoidsRow()					//找到四个可组成长方形的空格，某个数字必须填在长方形两个相对的角上
+//找到四个可组成长方形的空格，某个数字必须填在长方形两个相对的角上
+function RectVoidsRow()
 {
 	var row,col,i,j,k,p,t,m,num,count,flag;
 	var number=new Array();
@@ -2020,10 +2077,10 @@ function RectVoidsRow()					//找到四个可组成长方形的空格，某个�
 						if(i < t)
 							number[count++]=col;
 					}
+					//找到四个可组成长方形的空格，数字num必须填在长方形两个相对的角上
 					if(count == 4 && number[0] == number[2] && number[1] == number[3])
-																													//找到四个可组成长方形的空格，数字num必须填在长方形两个相对的角上
 					{
-						for(k=0;k<9;k++)						//该长方形的左列其它空格不能填这个数字
+						for(k=0;k<9;k++)  //该长方形的左列其它空格不能填这个数字
 						{
 							t=number[0];
 							if(TrimStr(TableArray[k][t]) != "" || k == row || k == j)
@@ -2042,12 +2099,12 @@ function RectVoidsRow()					//找到四个可组成长方形的空格，某个�
 									BigTable.rows[j].cells[number[0]].bgColor="#99CCFF";
 									BigTable.rows[j].cells[number[1]].bgColor="#99CCFF";
 									BigTable.rows[k].cells[t].bgColor="#FFCC99";											
-									VoidNum[k][t][0]--;								//从该空格的可填数列表里删除num
+									VoidNum[k][t][0]--;	//从该空格的可填数列表里删除num
 									for(;i<p-1;i++)
 										VoidNum[k][t][i+1]=VoidNum[k][t][i+2];
 									if(document.getElementById("OneByOne").checked)	
 									{
-										if(flag == 0)					//可能会影响多个空格，只提示一次
+										if(flag == 0)	//可能会影响多个空格，只提示一次
 											alert("由于数字"+num+"只能填在长方形四个顶点上，所以"+(k+1)+"行"+(t+1)+"列不能填"+num);
 										else
 											alert((k+1)+"行"+(t+1)+"列不能填"+num);										
@@ -2058,12 +2115,12 @@ function RectVoidsRow()					//找到四个可组成长方形的空格，某个�
 									BigTable.rows[j].cells[number[0]].innerHTML="&nbsp;";
 									BigTable.rows[j].cells[number[1]].innerHTML="&nbsp;";
 									if(document.getElementById('VoidNums').checked == true)
-										ShowVoidNums();							//更新候选数信息，可优化为只更新一个单元格的候选数信息
-									break;				//不必检查该空格的其它候选数
+										ShowVoidNums();	//更新候选数信息，可优化为只更新一个单元格的候选数信息
+									break;		//不必检查该空格的其它候选数
 								}
 							}
 						}
-						for(k=0;k<9;k++)						//该长方形的右列其它空格不能填这个数字
+						for(k=0;k<9;k++)  //该长方形的右列其它空格不能填这个数字
 						{
 							t=number[1];
 							if(TrimStr(TableArray[k][t]) != "" || k == row || k == j)
@@ -2099,7 +2156,7 @@ function RectVoidsRow()					//找到四个可组成长方形的空格，某个�
 									BigTable.rows[j].cells[number[1]].innerHTML="&nbsp;";
 									if(document.getElementById('VoidNums').checked == true)
 										ShowVoidNums();							//更新候选数信息，可优化为只更新一个单元格的候选数信息
-									break;				//不必检查该空格的其它候选数
+									break;  //不必检查该空格的其它候选数
 								}
 							}
 						}
@@ -2107,14 +2164,15 @@ function RectVoidsRow()					//找到四个可组成长方形的空格，某个�
 							return true;
 					}
 					count=2;
-				}						//寻找下一个有两个空格的行
-			}					//找到第一个有两个空格的行
-		}					//寻找第一个有两个空格的行
-	}				//扫描数字1-9
+				}	//寻找下一个有两个空格的行
+			}	//找到第一个有两个空格的行
+		}	//寻找第一个有两个空格的行
+	}	//扫描数字1-9
 	return false;
 }
 
-function RectVoidsCol()					//找到四个可组成长方形的空格，某个数字必须填在长方形两个相对的角上
+//找到四个可组成长方形的空格，某个数字必须填在长方形两个相对的角上
+function RectVoidsCol()
 {
 	var row,col,i,j,k,p,t,m,num,count,flag;
 	var number=new Array();
@@ -2125,7 +2183,7 @@ function RectVoidsCol()					//找到四个可组成长方形的空格，某个�
 		for(col=0;col<9;col++)
 		{
 			count=0;
-			for(row=0;row<9;row++)			//一个数字在该列的可填空格数：两个
+			for(row=0;row<9;row++)	//一个数字在该列的可填空格数：两个
 			{
 				if(TrimStr(TableArray[row][col]) != "")
 					continue;
@@ -2142,7 +2200,7 @@ function RectVoidsCol()					//找到四个可组成长方形的空格，某个�
 			{
 				for(j=col+1;j<9;j++)
 				{
-					for(row=0;row<9;row++)			//同一个数字在另一列的可填空格数和位置
+					for(row=0;row<9;row++)	//同一个数字在另一列的可填空格数和位置
 					{
 						if(TrimStr(TableArray[row][j]) != "")
 							continue;
@@ -2158,7 +2216,7 @@ function RectVoidsCol()					//找到四个可组成长方形的空格，某个�
 					if(count == 4 && number[0] == number[2] && number[1] == number[3])
 																													//找到四个可组成长方形的空格，数字num必须填在长方形两个相对的角上
 					{
-						for(k=0;k<9;k++)						//该长方形的上行其它空格不能填这个数字
+						for(k=0;k<9;k++)	//该长方形的上行其它空格不能填这个数字
 						{
 							t=number[0];
 							if(TrimStr(TableArray[t][k]) != "" || k == col || k == j)
@@ -2198,7 +2256,7 @@ function RectVoidsCol()					//找到四个可组成长方形的空格，某个�
 								}
 							}
 						}
-						for(k=0;k<9;k++)						//该长方形的下行其它空格不能填这个数字
+						for(k=0;k<9;k++)	//该长方形的下行其它空格不能填这个数字
 						{
 							t=number[1];
 							if(TrimStr(TableArray[t][k]) != "" || k == col || k == j)
@@ -2234,7 +2292,7 @@ function RectVoidsCol()					//找到四个可组成长方形的空格，某个�
 									BigTable.rows[number[1]].cells[j].innerHTML="&nbsp;";
 									if(document.getElementById('VoidNums').checked == true)
 										ShowVoidNums();							//更新候选数信息，可优化为只更新一个单元格的候选数信息
-									break;				//不必检查该空格的其它候选数
+									break;	//不必检查该空格的其它候选数
 								}
 							}
 						}
@@ -2242,14 +2300,14 @@ function RectVoidsCol()					//找到四个可组成长方形的空格，某个�
 							return true;
 					}
 					count=2;
-				}						//寻找下一个有两个空格的列
-			}					//找到第一个有两个空格的列
-		}					//寻找第一个有两个空格的列
-	}				//扫描数字1-9
+				}	//寻找下一个有两个空格的列
+			}	//找到第一个有两个空格的列
+		}	//寻找第一个有两个空格的列
+	}	//扫描数字1-9
 	return false;
 }
 
-function CheckCellUnique()							//检查每个空格的填入可能性
+function CheckCellUnique()	//检查每个空格的填入可能性
 {
 	var row,col,i,j,num,number,count;
 
@@ -2280,7 +2338,8 @@ function CheckCellUnique()							//检查每个空格的填入可能性
 				findrow=row;
 				findcol=col;
 				findnumber=number;
-				BigTable.rows[row].cells[col].bgColor="#99CCFF";
+				if(clicktype != "HintN")
+					BigTable.rows[row].cells[col].bgColor="#99CCFF";
 				if(document.getElementById("OneByOne").checked)	
 					alert("该空格只能填"+number);
 				return true;
@@ -2290,7 +2349,7 @@ function CheckCellUnique()							//检查每个空格的填入可能性
 	return false;
 }
 
-function CheckMUnique()								//检查九宫内数字填入的可能性
+function CheckMUnique()	//检查九宫内数字填入的可能性
 {
 	var num,count,i,j,k,trow,tcol,flag,findnum,stopnum;
 	
@@ -2319,7 +2378,8 @@ function CheckMUnique()								//检查九宫内数字填入的可能性
 					findrow=trow;
 					findcol=tcol;
 					findnumber=num;
-					BigTable.rows[trow].cells[tcol].bgColor="#99CCFF";
+					if(clicktype != "HintN")
+						BigTable.rows[trow].cells[tcol].bgColor="#99CCFF";
 					if(document.getElementById("OneByOne").checked)	
 						alert(num+"只能填在九宫格内的这个空格");
 					return true;					
@@ -2330,7 +2390,7 @@ function CheckMUnique()								//检查九宫内数字填入的可能性
 	return false;
 }
 
-function CheckCUnique()								//检查列内的数字可填充性
+function CheckCUnique()	//检查列内的数字可填充性
 {
 	var num,number,count,i,j,k,p,trow,tcol,flag,flag2,findnum,stopnum;
 	
@@ -2339,12 +2399,12 @@ function CheckCUnique()								//检查列内的数字可填充性
 	stopnum=81;
 	for(num=1;num<=9;num++)
 	{
-		for(i=0;i<9;i++)										//扫描列
+		for(i=0;i<9;i++)	//扫描列
 		{
 			count=0;
 			trow=0;
 			tcol=0;
-			for(j=0;j<9;j++)		//扫描列内的每个单元格
+			for(j=0;j<9;j++)	//扫描列内的每个单元格
 			{
 				for(k=0;k<CountNum[num-1][0];k++)
 				{
@@ -2360,7 +2420,8 @@ function CheckCUnique()								//检查列内的数字可填充性
 				findrow=trow;
 				findcol=tcol;
 				findnumber=num;
-				BigTable.rows[trow].cells[tcol].bgColor="#99CCFF";
+				if(clicktype != "HintN")
+					BigTable.rows[trow].cells[tcol].bgColor="#99CCFF";
 				if(document.getElementById("OneByOne").checked)	
 					alert(num+"只能填在这一列的这个空格");
 				return true;				
@@ -2370,7 +2431,7 @@ function CheckCUnique()								//检查列内的数字可填充性
 	return false;
 }
 
-function CheckRUnique()								//检查行内的数字可填充性			待修改××××
+function CheckRUnique()	//检查行内的数字可填充性	待修改××××
 {
 	var num,number,count,i,j,k,p,trow,tcol,flag,flag2,findnum,stopnum;
 	
@@ -2379,12 +2440,12 @@ function CheckRUnique()								//检查行内的数字可填充性			待修改×
 	stopnum=81;
 	for(num=1;num<=9;num++)
 	{
-		for(i=0;i<9;i++)										//扫描行
+		for(i=0;i<9;i++)	//扫描行
 		{
 			count=0;
 			trow=0;
 			tcol=0;
-			for(j=0;j<9;j++)		//扫描行内的每个单元格
+			for(j=0;j<9;j++)	//扫描行内的每个单元格
 			{
 				for(k=0;k<CountNum[num-1][0];k++)
 				{
@@ -2400,7 +2461,8 @@ function CheckRUnique()								//检查行内的数字可填充性			待修改×
 				findrow=trow;
 				findcol=tcol;
 				findnumber=num;
-				BigTable.rows[trow].cells[tcol].bgColor="#99CCFF";
+				if(clicktype != "HintN")
+					BigTable.rows[trow].cells[tcol].bgColor="#99CCFF";
 				if(document.getElementById("OneByOne").checked)	
 					alert(num+"只能填在这一行的这个空格");
 				return true;					
@@ -2408,6 +2470,12 @@ function CheckRUnique()								//检查行内的数字可填充性			待修改×
 		}			
 	}
 	return false;	
+}
+
+function HintN()
+{
+	clicktype="HintN";
+	AutoFindOne();
 }
 
 function HintPst()
@@ -2424,13 +2492,16 @@ function HintNum()
 
 function ChangeHint()
 {
+	//如果要给出填写原因，只能是“位置+数字”模式，禁用其他按钮
 	if(document.getElementById('OneByOne').checked)
 	{
+		document.getElementById('hintn').disabled=true;
 		document.getElementById('hintpst').disabled=true;
 		document.getElementById('autotry').disabled=true;
 	}
 	else
 	{
+		document.getElementById('hintn').disabled=false;
 		document.getElementById('hintpst').disabled=false;
 		document.getElementById('autotry').disabled=false;
 	}
@@ -2545,7 +2616,7 @@ function ShowVoidNums()
 						}
 						BigTable.rows[row].cells[col].innerHTML="<font  class='STYLE1'>"+str+"</font>";
 					}
-					else							//尝试后，有的空格候选数减少到1个
+					else	//尝试后，有的空格候选数减少到1个
 					{
 						BigTable.rows[row].cells[col].innerHTML="<font color='red'><strong>"+VoidNum[row][col][1]+"</strong></font>";
 					}
